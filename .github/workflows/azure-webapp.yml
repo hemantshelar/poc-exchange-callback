@@ -62,6 +62,7 @@ jobs:
                 --name "${AZURE_PLAN_NAME}" \
                 --resource-group "${AZURE_RESOURCE_GROUP}" \
                 --sku F1 \
+                --is-linux true \
                 --location "${AZURE_LOCATION}"
             fi
             if ! az webapp show --name "${AZURE_WEBAPP_NAME}" --resource-group "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
@@ -69,7 +70,7 @@ jobs:
                 --name "${AZURE_WEBAPP_NAME}" \
                 --resource-group "${AZURE_RESOURCE_GROUP}" \
                 --plan "${AZURE_PLAN_NAME}" \
-                --runtime "DOTNET:8.0"
+                --runtime "DOTNETCORE:8.0"
             fi
             NOTIFICATION_URL="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/api/graph/notifications"
             az webapp config appsettings set \

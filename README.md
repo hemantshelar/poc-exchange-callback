@@ -71,7 +71,7 @@ Subscriptions expire in about three days. Call `POST /api/subscriptions` again t
 
 ## GitHub Actions / Azure Free (F1)
 
-The workflow creates resource group `rg-poc-exchange-callback` in **Australia East**, an **F1** (Windows) App Service plan, and web app `pocxchcb-hemantshelar`.
+The workflow creates resource group `rg-poc-exchange-callback` in **Australia East**, an **F1 Linux** App Service plan, and web app `pocxchcb-hemantshelar` (`DOTNETCORE:8.0`).
 
 Add these **GitHub Actions secrets** on `hemantshelar/poc-exchange-callback`:
 
