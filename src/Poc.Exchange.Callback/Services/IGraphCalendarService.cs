@@ -1,0 +1,13 @@
+using Microsoft.Graph.Models;
+using Poc.Exchange.Callback.Models;
+
+namespace Poc.Exchange.Callback.Services;
+
+public interface IGraphCalendarService
+{
+    Task<Event?> GetEventAsync(string eventId, CancellationToken cancellationToken);
+
+    Task<Subscription> CreateSubscriptionAsync(CancellationToken cancellationToken);
+
+    Task<ReceivedNotification> ToReceivedAsync(GraphNotification notification, CancellationToken cancellationToken);
+}

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/.github">
+    <File Path=".github/workflows/azure-webapp.yml" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="src/Poc.Exchange.Callback/Poc.Exchange.Callback.csproj" />
+  <Project Path="tests/Poc.Exchange.Callback.Tests/Poc.Exchange.Callback.Tests.csproj" />
+</Solution>

@@ -1,0 +1,91 @@
+name: Build and deploy Azure Web App (Free)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AZURE_RESOURCE_GROUP: rg-poc-exchange-callback
+  AZURE_LOCATION: australiaeast
+  AZURE_PLAN_NAME: plan-poc-exchange-callback
+  AZURE_WEBAPP_NAME: pocxchcb-hemantshelar
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Test
+        run: dotnet test Poc.Exchange.Callback.sln --configuration Release
+
+      - name: Publish
+        run: dotnet publish src/Poc.Exchange.Callback/Poc.Exchange.Callback.csproj --configuration Release --output ./publish
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create free App Service and deploy
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az group create --name "${AZURE_RESOURCE_GROUP}" --location "${AZURE_LOCATION}"
+            if ! az appservice plan show --name "${AZURE_PLAN_NAME}" --resource-group "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
+              az appservice plan create \
+                --name "${AZURE_PLAN_NAME}" \
+                --resource-group "${AZURE_RESOURCE_GROUP}" \
+                --sku F1 \
+                --location "${AZURE_LOCATION}"
+            fi
+            if ! az webapp show --name "${AZURE_WEBAPP_NAME}" --resource-group "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
+              az webapp create \
+                --name "${AZURE_WEBAPP_NAME}" \
+                --resource-group "${AZURE_RESOURCE_GROUP}" \
+                --plan "${AZURE_PLAN_NAME}" \
+                --runtime "DOTNET:8.0"
+            fi
+            NOTIFICATION_URL="https://${AZURE_WEBAPP_NAME}.azurewebsites.net/api/graph/notifications"
+            az webapp config appsettings set \
+              --name "${AZURE_WEBAPP_NAME}" \
+              --resource-group "${AZURE_RESOURCE_GROUP}" \
+              --settings \
+                ASPNETCORE_ENVIRONMENT=Production \
+                Graph__TenantId="${{ secrets.GRAPH_TENANT_ID }}" \
+                Graph__ClientId="${{ secrets.GRAPH_CLIENT_ID }}" \
+                Graph__ClientSecret="${{ secrets.GRAPH_CLIENT_SECRET }}" \
+                Graph__Mailbox="${{ secrets.GRAPH_MAILBOX }}" \
+                Graph__ClientState="${{ secrets.GRAPH_CLIENT_STATE }}" \
+                Graph__NotificationUrl="${NOTIFICATION_URL}"
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ./publish

@@ -1,0 +1,6 @@
+@Poc.Exchange.Callback_HostAddress = http://localhost:5232
+
+GET {{Poc.Exchange.Callback_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
