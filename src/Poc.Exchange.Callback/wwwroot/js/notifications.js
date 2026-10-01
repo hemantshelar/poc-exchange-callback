@@ -1,5 +1,6 @@
 (() => {
   const searchEl = document.getElementById("search");
+  const mailboxEl = document.getElementById("sourceMailbox");
   const typeEl = document.getElementById("changeType");
   const sortEl = document.getElementById("sort");
   const rowsEl = document.getElementById("rows");
@@ -12,8 +13,21 @@
     return (value ?? "").toString();
   }
 
-  function matches(item, query, changeType) {
+  function fillMailboxFilter() {
+    const selected = mailboxEl.value;
+    const mailboxes = [...new Set(items.map((item) => text(item.sourceMailbox)).filter(Boolean))].sort();
+    mailboxEl.innerHTML = `<option value="">All mailboxes</option>` +
+      mailboxes.map((mailbox) => `<option value="${escapeHtml(mailbox)}">${escapeHtml(mailbox)}</option>`).join("");
+    if (mailboxes.includes(selected)) {
+      mailboxEl.value = selected;
+    }
+  }
+
+  function matches(item, query, changeType, mailbox) {
     if (changeType && text(item.changeType).toLowerCase() !== changeType) {
+      return false;
+    }
+    if (mailbox && text(item.sourceMailbox).toLowerCase() !== mailbox.toLowerCase()) {
       return false;
     }
     if (!query) {
@@ -24,7 +38,10 @@
       item.organizer,
       item.eventId,
       item.detail,
-      item.changeType
+      item.changeType,
+      item.sourceMailbox,
+      item.subscriptionId,
+      item.attendeeResponses
     ].map((part) => text(part).toLowerCase()).join(" ");
     return haystack.includes(query);
   }
@@ -49,27 +66,29 @@
   function render() {
     const query = searchEl.value.trim().toLowerCase();
     const changeType = typeEl.value.toLowerCase();
+    const mailbox = mailboxEl.value;
     const filtered = sortItems(
-      items.filter((item) => matches(item, query, changeType)),
+      items.filter((item) => matches(item, query, changeType, mailbox)),
       sortEl.value
     );
 
     countEl.textContent = `${filtered.length} of ${items.length} notification${items.length === 1 ? "" : "s"}`;
 
     if (filtered.length === 0) {
-      rowsEl.innerHTML = `<tr><td class="empty" colspan="7">${items.length === 0 ? "No notifications yet." : "No rows match the current filter."}</td></tr>`;
+      rowsEl.innerHTML = `<tr><td class="empty" colspan="8">${items.length === 0 ? "No notifications yet." : "No rows match the current filter."}</td></tr>`;
       return;
     }
 
     rowsEl.innerHTML = filtered.map((item) => `
       <tr>
         <td>${escapeHtml(item.receivedAtUtc)}</td>
+        <td>${escapeHtml(item.sourceMailbox)}</td>
         <td>${escapeHtml(item.changeType)}</td>
         <td>${escapeHtml(item.subject)}</td>
         <td>${escapeHtml(item.organizer)}</td>
+        <td>${escapeHtml(item.attendeeResponses)}</td>
         <td>${escapeHtml(item.start)}</td>
-        <td>${escapeHtml(item.end)}</td>
-        <td>${escapeHtml(item.eventId)}</td>
+        <td title="${escapeHtml(item.subscriptionId)}">${escapeHtml(item.eventId)}</td>
       </tr>
     `).join("");
   }
@@ -90,15 +109,17 @@
         throw new Error(`HTTP ${response.status}`);
       }
       items = await response.json();
+      fillMailboxFilter();
       render();
     } catch (error) {
       errorEl.hidden = false;
       errorEl.textContent = `Could not load notifications. ${error.message}`;
-      rowsEl.innerHTML = `<tr><td class="empty" colspan="7">Unable to load data.</td></tr>`;
+      rowsEl.innerHTML = `<tr><td class="empty" colspan="8">Unable to load data.</td></tr>`;
     }
   }
 
   searchEl.addEventListener("input", render);
+  mailboxEl.addEventListener("change", render);
   typeEl.addEventListener("change", render);
   sortEl.addEventListener("change", render);
   document.getElementById("refresh").addEventListener("click", load);

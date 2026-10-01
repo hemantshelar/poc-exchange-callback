@@ -16,12 +16,18 @@
   </header>
   <main class="wrap">
     <h1>Notification history</h1>
-    <p class="meta">Calendar events received from Microsoft Graph. In-memory only; a restart clears the list.</p>
+    <p class="meta">Each row is a Graph webhook. Source mailbox tells you which subscription fired. Attendee responses show room accept/decline when Graph returns them.</p>
 
     <div class="toolbar">
       <label>
         Search
-        <input id="search" type="search" placeholder="Subject, organizer, event id" />
+        <input id="search" type="search" placeholder="Subject, mailbox, attendee, event id" />
+      </label>
+      <label>
+        Source mailbox
+        <select id="sourceMailbox">
+          <option value="">All mailboxes</option>
+        </select>
       </label>
       <label>
         Change type
@@ -51,16 +57,17 @@
       <thead>
         <tr>
           <th>Received (UTC)</th>
+          <th>Source mailbox</th>
           <th>Change</th>
           <th>Subject</th>
           <th>Organizer</th>
+          <th>Attendee responses</th>
           <th>Start</th>
-          <th>End</th>
           <th>Event id</th>
         </tr>
       </thead>
       <tbody id="rows">
-        <tr><td class="empty" colspan="7">Loading…</td></tr>
+        <tr><td class="empty" colspan="8">Loading…</td></tr>
       </tbody>
     </table>
   </main>

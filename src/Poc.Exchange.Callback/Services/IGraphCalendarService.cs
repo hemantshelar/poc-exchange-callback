@@ -5,7 +5,7 @@ namespace Poc.Exchange.Callback.Services;
 
 public interface IGraphCalendarService
 {
-    Task<Event?> GetEventAsync(string eventId, CancellationToken cancellationToken);
+    Task<Event?> GetEventAsync(string mailbox, string eventId, CancellationToken cancellationToken);
 
     Task<Subscription> CreateSubscriptionAsync(string mailbox, CancellationToken cancellationToken);
 

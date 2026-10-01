@@ -61,7 +61,7 @@ public sealed class NotificationEndpointTests : IClassFixture<CallbackApiFactory
                   "subscriptionId": "sub-1",
                   "clientState": "test-client-state",
                   "changeType": "created",
-                  "resource": "Users/admin/Events/evt-1",
+                  "resource": "Users/MeetingRoom1@harmoniousflair.com.au/Events/evt-1",
                   "resourceData": { "id": "evt-1" }
                 }
               ]
@@ -76,7 +76,12 @@ public sealed class NotificationEndpointTests : IClassFixture<CallbackApiFactory
 
         var recent = await _client.GetFromJsonAsync<List<ReceivedNotification>>("/api/notifications");
         Assert.NotNull(recent);
-        Assert.Contains(recent, n => n.EventId == "evt-1" && n.ChangeType == "created");
+        Assert.Contains(recent, n =>
+            n.EventId == "evt-1"
+            && n.ChangeType == "created"
+            && n.SourceMailbox == "MeetingRoom1@harmoniousflair.com.au"
+            && n.AttendeeResponses != null
+            && n.AttendeeResponses.Contains("accepted", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -198,7 +203,7 @@ file sealed class FakeGraphCalendarService : IGraphCalendarService
         return Task.FromResult(items);
     }
 
-    public Task<Event?> GetEventAsync(string eventId, CancellationToken cancellationToken)
+    public Task<Event?> GetEventAsync(string mailbox, string eventId, CancellationToken cancellationToken)
     {
         return Task.FromResult<Event?>(null);
     }
@@ -210,7 +215,22 @@ file sealed class FakeGraphCalendarService : IGraphCalendarService
             ReceivedAtUtc = DateTimeOffset.UtcNow,
             ChangeType = notification.ChangeType ?? "unknown",
             EventId = notification.ResourceData?.Id ?? "(unknown)",
-            Subject = "fake"
+            Subject = "fake",
+            SourceMailbox = GraphResourceParser.MailboxFromResource(notification.Resource),
+            SubscriptionId = notification.SubscriptionId,
+            Resource = notification.Resource,
+            AttendeeResponses = "MeetingRoom1@harmoniousflair.com.au (room): accepted"
         });
+    }
+}
+
+public sealed class GraphResourceParserTests
+{
+    [Theory]
+    [InlineData("Users/MeetingRoom1@harmoniousflair.com.au/Events/abc", "MeetingRoom1@harmoniousflair.com.au")]
+    [InlineData("/users/admin@harmoniousflair.com.au/events", "admin@harmoniousflair.com.au")]
+    public void MailboxFromResource_reads_user(string resource, string expected)
+    {
+        Assert.Equal(expected, GraphResourceParser.MailboxFromResource(resource));
     }
 }

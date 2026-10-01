@@ -45,4 +45,8 @@ public sealed class ReceivedNotification
     public string? Start { get; init; }
     public string? End { get; init; }
     public string? Detail { get; init; }
+    public string? SourceMailbox { get; init; }
+    public string? SubscriptionId { get; init; }
+    public string? Resource { get; init; }
+    public string? AttendeeResponses { get; init; }
 }

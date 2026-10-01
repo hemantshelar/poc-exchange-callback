@@ -20,9 +20,9 @@ public sealed class GraphCalendarService : IGraphCalendarService
         _client = new Lazy<GraphServiceClient>(CreateClient);
     }
 
-    public async Task<Event?> GetEventAsync(string eventId, CancellationToken cancellationToken)
+    public async Task<Event?> GetEventAsync(string mailbox, string eventId, CancellationToken cancellationToken)
     {
-        return await _client.Value.Users[_options.Mailbox].Events[eventId].GetAsync(cancellationToken: cancellationToken);
+        return await _client.Value.Users[mailbox].Events[eventId].GetAsync(cancellationToken: cancellationToken);
     }
 
     public async Task<Subscription> CreateSubscriptionAsync(string mailbox, CancellationToken cancellationToken)
@@ -64,26 +64,30 @@ public sealed class GraphCalendarService : IGraphCalendarService
     public async Task<ReceivedNotification> ToReceivedAsync(GraphNotification notification, CancellationToken cancellationToken)
     {
         var eventId = notification.ResourceData?.Id ?? "(unknown)";
+        var sourceMailbox = GraphResourceParser.MailboxFromResource(notification.Resource)
+            ?? _options.Mailbox;
         string? subject = null;
         string? organizer = null;
         string? start = null;
         string? end = null;
         string? detail = null;
+        string? attendeeResponses = null;
 
         if (!string.IsNullOrWhiteSpace(notification.ResourceData?.Id)
             && !string.Equals(notification.ChangeType, "deleted", StringComparison.OrdinalIgnoreCase))
         {
             try
             {
-                var calendarEvent = await GetEventAsync(notification.ResourceData.Id, cancellationToken);
+                var calendarEvent = await GetEventAsync(sourceMailbox, notification.ResourceData.Id, cancellationToken);
                 subject = calendarEvent?.Subject;
                 organizer = calendarEvent?.Organizer?.EmailAddress?.Address;
                 start = calendarEvent?.Start?.DateTime;
                 end = calendarEvent?.End?.DateTime;
+                attendeeResponses = FormatAttendeeResponses(calendarEvent);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not load event {EventId} from Graph.", eventId);
+                _logger.LogWarning(ex, "Could not load event {EventId} from {Mailbox}.", eventId, sourceMailbox);
                 detail = ex.Message;
             }
         }
@@ -97,8 +101,29 @@ public sealed class GraphCalendarService : IGraphCalendarService
             Organizer = organizer,
             Start = start,
             End = end,
-            Detail = detail
+            Detail = detail,
+            SourceMailbox = sourceMailbox,
+            SubscriptionId = notification.SubscriptionId,
+            Resource = notification.Resource,
+            AttendeeResponses = attendeeResponses
         };
+    }
+
+    private static string? FormatAttendeeResponses(Event? calendarEvent)
+    {
+        if (calendarEvent?.Attendees is null || calendarEvent.Attendees.Count == 0)
+        {
+            return null;
+        }
+
+        return string.Join("; ", calendarEvent.Attendees
+            .Where(attendee => !string.IsNullOrWhiteSpace(attendee.EmailAddress?.Address))
+            .Select(attendee =>
+            {
+                var kind = attendee.Type == AttendeeType.Resource ? "room" : "attendee";
+                var response = attendee.Status?.Response?.ToString() ?? "unknown";
+                return $"{attendee.EmailAddress!.Address} ({kind}): {response}";
+            }));
     }
 
     private GraphServiceClient CreateClient()
