@@ -10,6 +10,7 @@ public static class GraphEndpoints
     public static void MapGraphEndpoints(this WebApplication app)
     {
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+        app.MapGet("/notifications", () => Results.Redirect("/notifications.html"));
 
         app.MapMethods("/api/graph/notifications", ["GET", "POST"], HandleNotification)
             .WithName("GraphNotifications")

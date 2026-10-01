@@ -28,6 +28,18 @@ public sealed class NotificationEndpointTests : IClassFixture<CallbackApiFactory
     }
 
     [Fact]
+    public async Task Notifications_page_is_served()
+    {
+        var response = await _client.GetAsync("/notifications.html");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Notification history", html);
+        Assert.Contains("id=\"search\"", html);
+        Assert.Contains("id=\"changeType\"", html);
+        Assert.Contains("id=\"sort\"", html);
+    }
+
+    [Fact]
     public async Task Graph_validation_echoes_token_as_plain_text()
     {
         var response = await _client.PostAsync(
@@ -97,6 +109,10 @@ public sealed class CallbackApiFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        var projectDir = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Poc.Exchange.Callback"));
+        builder.UseContentRoot(projectDir);
+        builder.UseWebRoot(Path.Combine(projectDir, "wwwroot"));
         builder.UseEnvironment("Development");
         builder.ConfigureAppConfiguration((_, config) =>
         {

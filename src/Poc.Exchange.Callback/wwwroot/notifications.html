@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notification history</title>
+  <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+  <header class="bar">
+    <strong>Exchange callback POC</strong>
+    <nav>
+      <a href="/">Home</a>
+    </nav>
+  </header>
+  <main class="wrap">
+    <h1>Notification history</h1>
+    <p class="meta">Calendar events received from Microsoft Graph. In-memory only; a restart clears the list.</p>
+
+    <div class="toolbar">
+      <label>
+        Search
+        <input id="search" type="search" placeholder="Subject, organizer, event id" />
+      </label>
+      <label>
+        Change type
+        <select id="changeType">
+          <option value="">All</option>
+          <option value="created">created</option>
+          <option value="updated">updated</option>
+          <option value="deleted">deleted</option>
+        </select>
+      </label>
+      <label>
+        Sort by
+        <select id="sort">
+          <option value="receivedDesc">Received (newest)</option>
+          <option value="receivedAsc">Received (oldest)</option>
+          <option value="subject">Subject</option>
+          <option value="changeType">Change type</option>
+        </select>
+      </label>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+
+    <p id="count" class="meta"></p>
+    <p id="error" class="error" hidden></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Received (UTC)</th>
+          <th>Change</th>
+          <th>Subject</th>
+          <th>Organizer</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Event id</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td class="empty" colspan="7">Loading…</td></tr>
+      </tbody>
+    </table>
+  </main>
+  <script src="/js/notifications.js"></script>
+</body>
+</html>

@@ -54,6 +54,8 @@ dotnet run --project src/Poc.Exchange.Callback
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| GET | `/` | Home page |
+| GET | `/notifications` or `/notifications.html` | Notification history UI (filter and sort) |
 | GET | `/health` | Liveness |
 | GET/POST | `/api/graph/notifications` | Graph validation + change notifications |
 | GET | `/api/notifications` | Last notifications this process received |
