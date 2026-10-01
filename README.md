@@ -56,10 +56,13 @@ dotnet run --project src/Poc.Exchange.Callback
 | --- | --- | --- |
 | GET | `/` | Home page |
 | GET | `/notifications` or `/notifications.html` | Notification history UI (filter and sort) |
+| GET | `/subscriptions` or `/subscriptions.html` | Create a Graph subscription for a mailbox and view the API result |
 | GET | `/health` | Liveness |
 | GET/POST | `/api/graph/notifications` | Graph validation + change notifications |
 | GET | `/api/notifications` | Last notifications this process received |
-| POST | `/api/subscriptions` | Create a Graph subscription for the mailbox |
+| GET | `/api/settings` | Default mailbox and notification URL (no secrets) |
+| GET | `/api/subscriptions` | List Graph subscriptions |
+| POST | `/api/subscriptions` | Create a Graph subscription. Body: `{ "mailbox": "user@example.com" }` |
 
 After the public URL is live:
 

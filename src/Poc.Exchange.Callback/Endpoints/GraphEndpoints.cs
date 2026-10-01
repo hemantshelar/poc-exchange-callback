@@ -11,6 +11,7 @@ public static class GraphEndpoints
     {
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
         app.MapGet("/notifications", () => Results.Redirect("/notifications.html"));
+        app.MapGet("/subscriptions", () => Results.Redirect("/subscriptions.html"));
 
         app.MapMethods("/api/graph/notifications", ["GET", "POST"], HandleNotification)
             .WithName("GraphNotifications")
@@ -18,6 +19,13 @@ public static class GraphEndpoints
 
         app.MapGet("/api/notifications", (INotificationStore store) => store.ListRecent());
 
+        app.MapGet("/api/settings", (IOptions<GraphOptions> options) => Results.Ok(new
+        {
+            defaultMailbox = options.Value.Mailbox,
+            notificationUrl = options.Value.NotificationUrl
+        }));
+
+        app.MapGet("/api/subscriptions", ListSubscriptions);
         app.MapPost("/api/subscriptions", CreateSubscription);
     }
 
@@ -74,28 +82,75 @@ public static class GraphEndpoints
         return Results.Accepted();
     }
 
+    private static async Task<IResult> ListSubscriptions(
+        IGraphCalendarService graph,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var items = await graph.ListSubscriptionsAsync(cancellationToken);
+            return Results.Ok(items.Select(item => ToResult(item)).ToArray());
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
     private static async Task<IResult> CreateSubscription(
+        SubscriptionRequest? request,
         IGraphCalendarService graph,
         IOptions<GraphOptions> options,
         CancellationToken cancellationToken)
     {
+        var mailbox = string.IsNullOrWhiteSpace(request?.Mailbox)
+            ? options.Value.Mailbox
+            : request.Mailbox.Trim();
+
         Microsoft.Graph.Models.Subscription created;
         try
         {
-            created = await graph.CreateSubscriptionAsync(cancellationToken);
+            created = await graph.CreateSubscriptionAsync(mailbox, cancellationToken);
         }
         catch (Exception ex)
         {
             return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
         }
 
-        return Results.Ok(new
+        return Results.Ok(ToResult(created, mailbox));
+    }
+
+    private static SubscriptionResult ToResult(Microsoft.Graph.Models.Subscription created, string? mailbox = null)
+    {
+        return new SubscriptionResult
         {
-            created.Id,
-            created.Resource,
-            created.NotificationUrl,
-            created.ExpirationDateTime,
-            mailbox = options.Value.Mailbox
-        });
+            Id = created.Id,
+            Resource = created.Resource,
+            NotificationUrl = created.NotificationUrl,
+            ExpirationDateTime = created.ExpirationDateTime,
+            ChangeType = created.ChangeType,
+            ClientState = created.ClientState,
+            Mailbox = mailbox ?? ExtractMailbox(created.Resource)
+        };
+    }
+
+    private static string? ExtractMailbox(string? resource)
+    {
+        if (string.IsNullOrWhiteSpace(resource))
+        {
+            return null;
+        }
+
+        const string prefix = "/users/";
+        const string suffix = "/events";
+        var start = resource.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        if (start < 0)
+        {
+            return resource;
+        }
+
+        start += prefix.Length;
+        var end = resource.IndexOf(suffix, start, StringComparison.OrdinalIgnoreCase);
+        return end < 0 ? resource[start..] : resource[start..end];
     }
 }

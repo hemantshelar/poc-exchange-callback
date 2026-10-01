@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graph subscriptions</title>
+  <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+  <header class="bar">
+    <strong>Exchange callback POC</strong>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/notifications.html">Notifications</a>
+    </nav>
+  </header>
+  <main class="wrap">
+    <h1>Graph subscriptions</h1>
+    <p class="meta">Create a calendar webhook for a mailbox. Graph must be able to reach the notification URL (the app must be publicly hosted and warm).</p>
+
+    <form id="create-form" class="toolbar">
+      <label>
+        Mailbox
+        <input id="mailbox" type="email" required placeholder="user@example.com" />
+      </label>
+      <label>
+        Notification URL
+        <input id="notificationUrl" type="url" readonly />
+      </label>
+      <button type="submit">Create subscription</button>
+      <button id="refresh" class="secondary" type="button">Refresh list</button>
+    </form>
+
+    <p id="error" class="error" hidden></p>
+
+    <section class="panel">
+      <h2>Last create result</h2>
+      <p class="meta">Shows the Graph / API payload: subscription id, resource, expiry, mailbox.</p>
+      <dl id="result-fields" class="meta"></dl>
+      <pre id="result-json" class="result">No create has been run in this session.</pre>
+    </section>
+
+    <section>
+      <h2>Existing subscriptions</h2>
+      <p id="list-count" class="meta"></p>
+      <table>
+        <thead>
+          <tr>
+            <th>Subscription id</th>
+            <th>Mailbox</th>
+            <th>Resource</th>
+            <th>Expires (UTC)</th>
+            <th>Change type</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td class="empty" colspan="5">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <script src="/js/subscriptions.js"></script>
+</body>
+</html>

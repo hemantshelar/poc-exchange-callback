@@ -80,6 +80,39 @@ public sealed class NotificationEndpointTests : IClassFixture<CallbackApiFactory
     }
 
     [Fact]
+    public async Task Subscriptions_page_is_served()
+    {
+        var response = await _client.GetAsync("/subscriptions.html");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Graph subscriptions", html);
+        Assert.Contains("id=\"mailbox\"", html);
+        Assert.Contains("Last create result", html);
+    }
+
+    [Fact]
+    public async Task Create_subscription_uses_requested_mailbox_and_returns_graph_fields()
+    {
+        var response = await _client.PostAsJsonAsync("/api/subscriptions", new { mailbox = "room@harmoniousflair.com.au" });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payload = await response.Content.ReadFromJsonAsync<SubscriptionResult>();
+        Assert.NotNull(payload);
+        Assert.Equal("sub-room@harmoniousflair.com.au", payload.Id);
+        Assert.Equal("room@harmoniousflair.com.au", payload.Mailbox);
+        Assert.Equal("/users/room@harmoniousflair.com.au/events", payload.Resource);
+        Assert.NotNull(payload.ExpirationDateTime);
+    }
+
+    [Fact]
+    public async Task List_subscriptions_returns_items()
+    {
+        var items = await _client.GetFromJsonAsync<List<SubscriptionResult>>("/api/subscriptions");
+        Assert.NotNull(items);
+        Assert.NotEmpty(items);
+        Assert.Equal("sub-existing", items[0].Id);
+    }
+
+    [Fact]
     public async Task Graph_notification_with_wrong_client_state_is_ignored()
     {
         var payload = """
@@ -136,9 +169,33 @@ public sealed class CallbackApiFactory : WebApplicationFactory<Program>
 
 file sealed class FakeGraphCalendarService : IGraphCalendarService
 {
-    public Task<Subscription> CreateSubscriptionAsync(CancellationToken cancellationToken)
+    public Task<Subscription> CreateSubscriptionAsync(string mailbox, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new Subscription { Id = "sub-test" });
+        return Task.FromResult(new Subscription
+        {
+            Id = $"sub-{mailbox}",
+            Resource = $"/users/{mailbox}/events",
+            NotificationUrl = "https://localhost/api/graph/notifications",
+            ExpirationDateTime = DateTimeOffset.UtcNow.AddHours(70),
+            ChangeType = "created,updated,deleted",
+            ClientState = "test-client-state"
+        });
+    }
+
+    public Task<IReadOnlyList<Subscription>> ListSubscriptionsAsync(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<Subscription> items =
+        [
+            new Subscription
+            {
+                Id = "sub-existing",
+                Resource = "/users/admin@harmoniousflair.com.au/events",
+                NotificationUrl = "https://localhost/api/graph/notifications",
+                ExpirationDateTime = DateTimeOffset.UtcNow.AddHours(10),
+                ChangeType = "created,updated,deleted"
+            }
+        ];
+        return Task.FromResult(items);
     }
 
     public Task<Event?> GetEventAsync(string eventId, CancellationToken cancellationToken)

@@ -7,7 +7,9 @@ public interface IGraphCalendarService
 {
     Task<Event?> GetEventAsync(string eventId, CancellationToken cancellationToken);
 
-    Task<Subscription> CreateSubscriptionAsync(CancellationToken cancellationToken);
+    Task<Subscription> CreateSubscriptionAsync(string mailbox, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<Subscription>> ListSubscriptionsAsync(CancellationToken cancellationToken);
 
     Task<ReceivedNotification> ToReceivedAsync(GraphNotification notification, CancellationToken cancellationToken);
 }

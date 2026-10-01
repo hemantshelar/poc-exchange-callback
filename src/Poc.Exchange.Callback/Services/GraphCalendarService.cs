@@ -25,7 +25,7 @@ public sealed class GraphCalendarService : IGraphCalendarService
         return await _client.Value.Users[_options.Mailbox].Events[eventId].GetAsync(cancellationToken: cancellationToken);
     }
 
-    public async Task<Subscription> CreateSubscriptionAsync(CancellationToken cancellationToken)
+    public async Task<Subscription> CreateSubscriptionAsync(string mailbox, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_options.NotificationUrl))
         {
@@ -37,17 +37,28 @@ public sealed class GraphCalendarService : IGraphCalendarService
             throw new InvalidOperationException("Graph:ClientSecret is required to call Microsoft Graph.");
         }
 
+        if (string.IsNullOrWhiteSpace(mailbox))
+        {
+            throw new InvalidOperationException("Mailbox is required.");
+        }
+
         var subscription = new Subscription
         {
             ChangeType = "created,updated,deleted",
             NotificationUrl = _options.NotificationUrl,
-            Resource = $"/users/{_options.Mailbox}/events",
+            Resource = $"/users/{mailbox.Trim()}/events",
             ExpirationDateTime = DateTimeOffset.UtcNow.AddHours(70),
             ClientState = _options.ClientState
         };
 
         var created = await _client.Value.Subscriptions.PostAsync(subscription, cancellationToken: cancellationToken);
         return created ?? throw new InvalidOperationException("Graph did not return a subscription.");
+    }
+
+    public async Task<IReadOnlyList<Subscription>> ListSubscriptionsAsync(CancellationToken cancellationToken)
+    {
+        var page = await _client.Value.Subscriptions.GetAsync(cancellationToken: cancellationToken);
+        return page?.Value ?? [];
     }
 
     public async Task<ReceivedNotification> ToReceivedAsync(GraphNotification notification, CancellationToken cancellationToken)
